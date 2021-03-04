@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>Destor源码解析01 - 功能及平台搭建 | 重金图书</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="Destor[1]是HUST Min Fu博士开发的重复数据删除系统评估平台，随作者的综述文章[2]在第十三届USENIX文件与存储技术会议上发布。Destor整合了文章发布前常见的、有关重复数据数据删除技术的算法，并以模块化的方式构建了一套评估平台。 近期我们使用了这个平台对某些去重算法进行评估。在使用的过程中，我们发现网络上关于此平台的文档较少，在大多数情况我们只能通过阅读源码了解Destor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Destor源码解析01 - 功能及平台搭建">
+<meta property="og:url" content="https://zzj.gold/2020/04/26/destor-code-desc-01/index.html">
+<meta property="og:site_name" content="重金图书">
+<meta property="og:description" content="Destor[1]是HUST Min Fu博士开发的重复数据删除系统评估平台，随作者的综述文章[2]在第十三届USENIX文件与存储技术会议上发布。Destor整合了文章发布前常见的、有关重复数据数据删除技术的算法，并以模块化的方式构建了一套评估平台。 近期我们使用了这个平台对某些去重算法进行评估。在使用的过程中，我们发现网络上关于此平台的文档较少，在大多数情况我们只能通过阅读源码了解Destor">
+<meta property="og:locale" content="zh">
+<meta property="article:published_time" content="2020-04-26T09:10:30.000Z">
+<meta property="article:modified_time" content="2021-03-04T14:57:28.856Z">
+<meta property="article:author" content="Samersions ZHONG">
+<meta name="twitter:card" content="summary">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    
+    <div id="header-inner" class="inner">
+      <nav id="sub-nav">
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://zzj.gold"></form>
+      </div>
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">首页</a>
+        
+          <a class="main-nav-link" href="/archives">归档</a>
+        
+      </nav>
+      
+    </div>
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">重金图书</a>
+      </h1>
+      
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-destor-code-desc-01" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/04/26/destor-code-desc-01/" class="article-date">
+  <time datetime="2020-04-26T09:10:30.000Z" itemprop="datePublished">2020-04-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Destor源码解析01 - 功能及平台搭建
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/hint.css/2.4.1/hint.min.css"><p>Destor<sup id="fnref:1"><a href="#fn:1" rel="footnote"><span class="hint--top hint--error hint--medium hint--rounded hint--bounce" aria-label="https://github.com/fomy/destor
+">[1]</span></a></sup>是HUST Min Fu博士开发的重复数据删除系统评估平台，随作者的综述文章<sup id="fnref:2"><a href="#fn:2" rel="footnote"><span class="hint--top hint--error hint--medium hint--rounded hint--bounce" aria-label="*Design Tradeoffs for Data Deduplication Performance in Backup Workloads* @ FAST'15">[2]</span></a></sup>在第十三届USENIX文件与存储技术会议上发布。Destor整合了文章发布前常见的、有关重复数据数据删除技术的算法，并以模块化的方式构建了一套评估平台。</p>
+<p>近期我们使用了这个平台对某些去重算法进行评估。在使用的过程中，我们发现网络上关于此平台的文档较少，在大多数情况我们只能通过阅读源码了解Destor的机制并在此平台实现算法。在近期工作完成后，我们决定撰写一系列有关此评估平台的解析文档，旨在为打算使用该评估平台的有关人士提供一点帮助，并加深我们对该评估平台的理解。</p>
+<p>如无意外，本系列解析文档将由如下几个文档构成：</p>
+<ul>
+<li><strong>功能及平台搭建</strong>。包含本文章接下来的功能介绍及平台搭建部分，重点描述如何搭建开发Destor的环境。</li>
+<li><strong>文件大纲与辅助文件详解</strong>。包含对所有源码文件功能的概要叙述以及非算法文件代码的解析。</li>
+<li><strong>文件读入、全模拟、计算散列阶段解析</strong>。包含文件读取、Trace以及分块后对数据块进行散列计算阶段代码的解析。</li>
+<li><strong>分块算法解析</strong>。对Destor原生使用的分块算法进行解析。</li>
+<li><strong>去重代码解析（上）</strong>。对去重阶段的基础代码、指纹索引表存储结构进行解析。</li>
+<li><strong>去重代码解析（下）</strong>。对相似性去重、指纹预取等代码进行解析。</li>
+<li><strong>重写算法解析</strong>。对重写阶段使用的算法进行解析。</li>
+<li><strong>恢复算法解析</strong>。对Destor使用的恢复算法进行解析。</li>
+</ul>
+<h1 id="功能介绍"><a href="#功能介绍" class="headerlink" title="功能介绍"></a>功能介绍</h1><h2 id="模拟"><a href="#模拟" class="headerlink" title="模拟"></a>模拟</h2><p>Destor支持四个级别的模拟，模拟模式下所做的备份和恢复操作不会写入硬盘，在某些情况下可以提升评估速度。</p>
+<p>模拟级别由小到大排序如下：</p>
+<ul>
+<li><strong>SIMULATION_NO</strong>：关闭模拟模式。在此模式下，备份会从硬盘读取真实文件，归档和恢复也会向硬盘写入数据。</li>
+<li><strong>SIMULATION_RESTORE</strong>：恢复模拟。在此模式下，备份、归档会操作硬盘，但恢复操作不会写入硬盘，只统计恢复操作各类性能指标。</li>
+<li><strong>SIMULATION_APPEND</strong>：归档模拟。在此模式下，只有备份会从硬盘读取数据，归档、恢复操作不会写入硬盘。</li>
+<li><strong>SIMULATION_ALL</strong>：全模拟。在此模式下，备份操作不会读取真实文件，归档和恢复操作也不会写入硬盘。因此要求用户提供Trace以供模拟。</li>
+</ul>
+<p>对于两个连续的备份版本，在满足要求情况下，可以使用两个不同模拟模式运行：</p>
+<ul>
+<li>若前一个版本模拟模式为<strong>SIMULATION_APPEND</strong>或<strong>SIMULATION_ALL</strong>，后一个版本的模拟级别不能为<strong>SIMULATION_RESTORE</strong>或<strong>SIMULATION_NO</strong>。</li>
+</ul>
+<p>原因显而易见，若前一个版本为这两个模式，则无法给后一版本提供用于恢复真实文件的归档数据，并且归档数据库内容会不正确。</p>
+<ul>
+<li>若前一个版本模拟模式为<strong>SIMULATION_RESTORE</strong>或<strong>SIMULATION_NO</strong>，后一个版本的模拟级别不能为<strong>SIMULATION_APPEND</strong>或<strong>SIMULATION_ALL</strong>。</li>
+</ul>
+<p>由于Destor要求备份的连续性，若进行这种模式的备份，在后期若要重新使用<strong>SIMULATION_RESTORE</strong>或<strong>SIMULATION_NO</strong>级别的备份，会出现无法访问某些备份版本的情况，从而使归档失败。因此若第一次备份时选择将真实文件归档的模拟模式————即<strong>SIMULATION_RESTORE</strong>或<strong>SIMULATION_NO</strong>————则后面每次备份都需要有真实文件的归档。</p>
+<h1 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h1><p>经测试，原版Destor的编译配置文件无法正常编译，主要原因是GLib的库文件和头文件位置无法查找以及libssl中函数名称与程序不符。作者针对前者的解决方式是手动移动头文件并为库文件建立链接。在此我们提供一种不需要移动任何文件的方法，以保证包管理器能正常维护这些包，此方法需要修改Destor的Autotools文件。</p>
+<ol>
+<li>需要安装Autotools系列工具：</li>
+</ol>
+<ul>
+<li>autoscan</li>
+<li>aclocal</li>
+<li>autoconf</li>
+<li>autoheader</li>
+<li>automake</li>
+</ul>
+<ol start="2">
+<li>安装GLib和libssl的开发文件以及pkg-config工具：</li>
+</ol>
+<ul>
+<li>libglib2.0-dev</li>
+<li>libssl-dev</li>
+<li>pkg-config</li>
+</ul>
+<ol start="3">
+<li>编辑<code>configure.ac</code>文件：</li>
+</ol>
+<ul>
+<li>删除文件内有关glib的命令，包括两个对GLib导出函数查找的<code>AC_CHECK_LIB</code>命令以及查找GLib头文件的<code>AC_CHECK_HEADERS</code>命令。</li>
+<li>修改crypto库中查找<code>SHA_Update</code>函数为<code>SHA1_Update</code>，因为新版本的OpenSSL中该函数已经更名。</li>
+<li>添加新的命令，使用pkg-config查找GLib，并拼接编译参数以确保相应的头文件被引入：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">PKG_CHECK_MODULES(GLIB, [glib-2.0 &gt;&#x3D; 2.32], [found_glib&#x3D;yes],[found-glib&#x3D;no])</span><br><span class="line">    if test &quot;$found_glib&quot; &#x3D; &quot;no&quot;; then</span><br><span class="line">    AC_MSG_ERROR([*** glib-2.0 not found ***])</span><br><span class="line">    fi</span><br><span class="line">CFLAGS+&#x3D;&quot; &quot;</span><br><span class="line">CFLAGS+&#x3D;$GLIB_CFLAGS</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<ol start="4">
+<li><p>修改<code>configure.ac</code>所在目录的<code>Makefile.am</code>文件，将链接的库由<code>glib</code>修改为<code>glib-2.0</code>。</p>
+</li>
+<li><p>修改<code>src/hash_phase.c</code>文件，修改如下函数：</p>
+</li>
+</ol>
+<ul>
+<li><code>SHA_Init</code> -&gt; <code>SHA1_Init</code></li>
+<li><code>SHA_Update</code> -&gt; <code>SHA1_Update</code></li>
+<li><code>SHA_Final</code> -&gt; <code>SHA1_Final</code></li>
+</ul>
+<ol start="6">
+<li><p>运行如下代码生成Autotools配置文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">aclocal</span><br><span class="line">autoconf</span><br><span class="line">automake --add-missing</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>生成Makefile并编译：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">.&#x2F;configure</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+
+
+
+
+</li>
+</ol>
+<div id="footnotes"><hr><div id="footnotelist"><ol style="list-style: none; padding-left: 0; margin-left: 40px"><li id="fn:1"><span style="display: inline-block; vertical-align: top; padding-right: 10px; margin-left: -40px">1.</span><span style="display: inline-block; vertical-align: top; margin-left: 10px;">https://github.com/fomy/destor<a href="#fnref:1" rev="footnote"> ↩</a></span></li><li id="fn:2"><span style="display: inline-block; vertical-align: top; padding-right: 10px; margin-left: -40px">2.</span><span style="display: inline-block; vertical-align: top; margin-left: 10px;"><em>Design Tradeoffs for Data Deduplication Performance in Backup Workloads</em> @ FAST'15<a href="#fnref:2" rev="footnote"> ↩</a></span></li></ol></div></div>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://zzj.gold/2020/04/26/destor-code-desc-01/" data-id="ckluztlx00000hook8gl9d2ao" class="article-share-link">分享</a>
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+ 
+<script src="/jquery/jquery.min.js"></script>
+
+  <div id="random_posts">
+    <h2>推荐文章</h2>
+    <div class="random_posts_ul">
+      <script>
+          var random_count =4
+          var site = {BASE_URI:'/'};
+          function load_random_posts(obj) {
+              var arr=site.posts;
+              if (!obj) return;
+              // var count = $(obj).attr('data-count') || 6;
+              for (var i, tmp, n = arr.length; n; i = Math.floor(Math.random() * n), tmp = arr[--n], arr[n] = arr[i], arr[i] = tmp);
+              arr = arr.slice(0, random_count);
+              var html = '<ul>';
+            
+              for(var j=0;j<arr.length;j++){
+                var item=arr[j];
+                html += '<li><strong>' + 
+                item.date + ':&nbsp;&nbsp;<a href="' + (site.BASE_URI+item.uri) + '">' + 
+                (item.title || item.uri) + '</a></strong>';
+                if(item.excerpt){
+                  html +='<div class="post-excerpt">'+item.excerpt+'</div>';
+                }
+                html +='</li>';
+                
+              }
+              $(obj).html(html + '</ul>');
+          }
+          $('.random_posts_ul').each(function () {
+              var c = this;
+              if (!site.posts || !site.posts.length){
+                  $.getJSON(site.BASE_URI + 'js/posts.js',function(json){site.posts = json;load_random_posts(c)});
+              } 
+               else{
+                load_random_posts(c);
+              }
+          });
+      </script>
+    </div>
+  </div>
+
+    
+  
+</article>
+ 
+     
+  <div class="comments" id="comments">
+    
+     
+       
+       
+      
+      
+  </div>
+ 
+  
+
+</section>
+           
+    <aside id="sidebar">
+  
+    
+
+  
+    
+    <div class="widget-wrap">
+    
+      <div class="widget" id="toc-widget-fixed">
+      
+        <strong class="toc-title">文章目录</strong>
+        <div class="toc-widget-list">
+              <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#功能介绍"><span class="toc-number">1.</span> <span class="toc-text">功能介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#模拟"><span class="toc-number">1.1.</span> <span class="toc-text">模拟</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#环境搭建"><span class="toc-number">2.</span> <span class="toc-text">环境搭建</span></a></li></ol>
+          </div>
+      </div>
+    </div>
+
+  
+    
+
+  
+    
+  
+    
+
+  
+</aside>
+
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-left">
+      &copy; 2014 - 2021 Samersions ZHONG&nbsp;|&nbsp;
+      主题 <a href="https://github.com/giscafer/hexo-theme-cafe/" target="_blank">Cafe</a>
+    </div>
+     <div id="footer-right">
+      联系方式&nbsp;|&nbsp;samlangten@gmail.com
+    </div>
+  </div>
+</footer>
+ 
+<script src="/jquery/jquery.min.js"></script>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">首页</a>
+  
+    <a href="/archives" class="mobile-nav-link">归档</a>
+  
+</nav>
+    <img class="back-to-top-btn" src="/images/fly-to-top.png"/>
+<script>
+// Elevator script included on the page, already.
+window.onload = function() {
+  var elevator = new Elevator({
+    selector:'.back-to-top-btn',
+    element: document.querySelector('.back-to-top-btn'),
+    duration: 1000 // milliseconds
+  });
+}
+</script>
+      
+
+  
+
+  
+
+
+
+
+
+
+
+<!-- author:forvoid begin -->
+<!-- author:forvoid begin -->
+
+<!-- author:forvoid end -->
+
+<!-- author:forvoid end -->
+
+
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      })
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      })
+    </script>
+    <script type="text/javascript" src="https://cdn.rawgit.com/mathjax/MathJax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+ 
+<script src="/js/is.js"></script>
+
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+<script src="/js/elevator.js"></script>
+
+  </div>
+</body>
+</html>
